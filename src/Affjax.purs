@@ -47,6 +47,7 @@ import Effect.Aff (Aff, try, delay)
 import Effect.Aff.Compat as AC
 import Effect.Class (liftEffect)
 import Effect.Exception (Error, error)
+import Effect.Exception.Unsafe (unsafeThrow)
 import Effect.Ref as Ref
 import Foreign (F, Foreign, ForeignError(..), fail, unsafeReadTagged, unsafeToForeign)
 import Math as Math
@@ -275,7 +276,11 @@ request req = do
     RequestBody.Document x → (unsafeToForeign :: Document -> Foreign) x
     RequestBody.String x → (unsafeToForeign :: String -> Foreign) x
     RequestBody.FormData x → (unsafeToForeign :: FormData -> Foreign) x
-    RequestBody.FormURLEncoded x → (unsafeToForeign :: String -> Foreign) (FormURLEncoded.encode x)
+    -- RequestBody.FormURLEncoded x → (unsafeToForeign :: String -> Foreign) (FormURLEncoded.encode x)
+    RequestBody.FormURLEncoded x →
+      case FormURLEncoded.encode x of
+           Just s  -> (unsafeToForeign :: String -> Foreign) s
+           Nothing -> unsafeThrow "Encoding error"
     RequestBody.Json x → (unsafeToForeign :: String -> Foreign) (J.stringify x)
 
   headers :: Maybe RequestBody.RequestBody -> Array RequestHeader
